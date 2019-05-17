@@ -1,10 +1,13 @@
 /* lisp interpreter  */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
 typedef unsigned int uint32_t;
+
 
 typedef uint32_t native_t;
 #define CELL_SIZE  sizeof (native_t) * 2
@@ -29,15 +32,26 @@ static native_t * heap_base = 0,  * heap_ptr = 0,  * sym_ptr = 0,  * toplevel = 
 #define set_proc(x) (((long)x << 3) | proc_tag)
 #define car(x)      *(native_t**) ((long)x - 1)
 #define cdr(x)      *(native_t**) ((long)x + 7)
-static void read_table_default() {
+
+
+static void read_table_default (){
+  
   int c;
+  
   for( c = 0 ; c < 0x7f ; c++ ) rt[c] = KEEP;
   rt['(']=rt[')']=rt['.']=rt[';']=rt['\'']=rt['"']=rt['#']=rt[',']=rt['`']= TERMINATE;
   rt[' ']=rt['\t']=rt['\r']=rt['\n']= SKIP;
 }
-static void lookahead() { look = getchar(); }
-static void gettoken() {
+
+static void lookahead (){ 
+  
+  look = getchar (); 
+}
+
+static void gettoken () {
+  
   int value_index = 0;
+  
   while(rt[look] == SKIP) lookahead();
   if (rt[look] == TERMINATE) {
     value[value_index++] = look; lookahead();
@@ -47,17 +61,20 @@ static void gettoken() {
     value[value_index++] = look; lookahead();
     if (look == EOF) break;
   }
-  value[value_index] = '\0';
+  
+    value[value_index] = '\0';
 }
 
 static native_t *g_define, *g_cond, *g_nil, *g_begin, *g_true, *g_atom, *g_quote,
                 *g_eq, *g_car, *g_cdr, *g_cons, *g_cond, *g_label, *g_lambda;
 
-native_t * cons(native_t *a, native_t *b) {
-  native_t **cell = (native_t **)heap_ptr;
-  cell[0] = a; cell[1] = b;
-  heap_ptr += CELL_SIZE;
-  return (native_t *) set_pair(cell);
+native_t *cons (native_t *a, native_t *b){
+  
+    native_t **cell = (native_t **)heap_ptr;
+    cell[0] = a; cell[1] = b;
+    heap_ptr += CELL_SIZE;
+    
+    return (native_t *) set_pair(cell);
 }
 
 native_t * proc(native_t * (*fn ) (native_t *) ) {
@@ -67,14 +84,20 @@ native_t * proc(native_t * (*fn ) (native_t *) ) {
   return (native_t *) set_proc(cell);
 }
 
-static native_t * findsym(char *val, native_t *list) {
-  for ( ; list ; list = cdr(list) ) {
-    native_t *a = car(list);
-    if (is_sym(a) && strcmp( (char *) ((long) a >> 3), val) == 0)
-      return a;
-  }
-  return 0;
+
+
+static native_t * findsym(char *val, native_t *list){
+  
+    for ( ; list ; list = cdr(list) )
+    {
+        native_t *a = car(list);
+        if (is_sym(a) && strcmp( (char *) ((long) a >> 3), val) == 0)
+           return a;
+    }
+  
+    return 0;
 }
+
 
 native_t * intern(char *val) {
   native_t *base = heap_ptr;
@@ -104,11 +127,12 @@ native_t * getobj(int have_token) {
   return intern(value);
 }
 
-native_t * getlist() 
-{
+
+native_t * getlist (){
+  
   native_t *tmp;
   
-  gettoken();
+  gettoken ();
   
   if (value[0]==')') return 0;
   else if (value[0]=='.') 
@@ -122,12 +146,17 @@ native_t * getlist()
        return cons(tmp, getlist());
 }
 
-void print_obj(native_t *ob, int head_of_list) {
+
+void print_obj (native_t *ob, int head_of_list){
+  
   if (is_num(ob) ) {
     printf("%ld", ((long) ob) >> 3);
+    
   } else if (is_sym(ob) ) {
-    printf("%s", (char *) ((long) ob >> 3));
-  } else if (is_pair(ob) ) {
+    printf ("%s", (char *) ((long) ob >> 3));
+    
+  } else if (is_pair(ob) ){
+    
     if (head_of_list) printf("(");
     print_obj(car(ob), 1);
     if (cdr(ob) != 0) {
@@ -142,12 +171,17 @@ void print_obj(native_t *ob, int head_of_list) {
     } else {
       printf(")");
     }
+    
   } else if (is_proc(ob)) {
-    printf("<procedure %p>", (void *) ob);
+        
+        printf("<procedure %p>", (void *) ob);
+    
   } else {
-    printf("<%p>", (void *)ob);
-  }
+    
+        printf ("<%p>", (void *)ob);
+    }
 }
+
 
 #define debug(OBJ) printf("%s:%d ", __FILE__, __LINE__); print_obj(OBJ,1); printf("\n");
 
@@ -163,7 +197,11 @@ native_t *evlist(native_t *l, native_t *e) {
   return l == 0 ? 0 : cons(eval(car(l),e), evlist(cdr(l), e));
 }
 
-native_t * eval(native_t *ob, native_t *en) {
+
+// Eval.
+
+native_t * eval (native_t *ob, native_t *en){
+  
   if (is_sym(ob)) {
     native_t *a = assoc(ob, en);
     return is_pair(a) == 0 ? g_nil : car(cdr(a)); /* (a b ...) -> b */
@@ -219,11 +257,16 @@ make_proc(add,+)
 make_proc(sub,-)
 make_proc(mul,*)
 
-int main(int argc, char *argv[]) 
-{
-    heap_ptr = heap_base = malloc(8192);
+  
+  
+int main (int argc, char *argv[]){
+  
+    heap_ptr = heap_base = malloc (8192);
+  
+    // #todo
+    // Check pointer.
     
-	g_nil    = intern("()"),    g_true  = intern("t"),      g_begin  = intern("begin"),
+    g_nil    = intern("()"),    g_true  = intern("t"),      g_begin  = intern("begin"),
     g_quote  = intern("quote"), g_atom  = intern("atom"),   g_eq     = intern("eq"),
     g_car    = intern("car"),   g_cdr   = intern("cdr"),    g_cons   = intern("cons"),
     g_cond   = intern("cond"),  g_label = intern("label"),  g_lambda = intern("lambda"),
@@ -232,13 +275,25 @@ int main(int argc, char *argv[])
     toplevel = cons(cons(intern("-"), cons(proc(sub), 0)), toplevel);
     toplevel = cons(cons(intern("*"), cons(proc(mul), 0)), toplevel);
     
-	read_table_default();
-    lookahead();
+	  read_table_default ();
     
-	for ( ; look != EOF ; ) 
-	{
-        print_obj ( eval(getobj(0), toplevel), 1 ); printf("\n");
+    lookahead ();
+    
+	  for ( ; look != EOF ; ) 
+	  {
+        print_obj ( eval(getobj(0), toplevel), 1 ); 
+        printf ("\n");
     }
 	
     return 0;
 }
+
+//
+// End.
+//
+
+
+
+
+
+
